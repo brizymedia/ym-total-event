@@ -27,6 +27,9 @@
     body,h1,h2,h3,p,ul,figure { margin:0; }
     img { display:block; max-width:100%; }
     button { font:inherit; }
+    /* display 를 가진 클래스가 hidden 속성을 덮어쓰지 못하게 한다.
+       이게 없으면 「숨김」으로 둔 칸이 그대로 보인다. */
+    [hidden] { display:none !important; }
 
     *    { font-family:'Pretendard',system-ui,-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif; word-break:keep-all; }
     html { scroll-behavior:smooth; scroll-padding-top:5rem; }
@@ -114,13 +117,92 @@
     }
     .faq p strong{ color:#fff;font-weight:700; }
 
+    /* ── 최근 현장 칩 — 사진을 올리면 저절로 바뀐다 ── */
+    .recent-chip{
+      display:inline-flex;align-items:center;gap:.5rem;
+      padding:.45rem .85rem .45rem .75rem;border-radius:9999px;
+      font-size:.78rem;color:#e4e4e7;cursor:pointer;
+      font-family:inherit;letter-spacing:-.01em;
+      transition:border-color .3s,background .3s;
+    }
+    .recent-chip:hover{ border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.08); }
+    .recent-dot{
+      width:.45rem;height:.45rem;border-radius:50%;flex-shrink:0;
+      background:#F87171;box-shadow:0 0 8px #F87171;
+    }
+
     /* ── Reveal on scroll ── */
     .reveal{ opacity:0;transform:translateY(28px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1); }
     .reveal.in{ opacity:1;transform:none; }
 
-    /* ── Hero ── */
-    @keyframes kenburns { from{transform:scale(1.06)} to{transform:scale(1.18)} }
-    .kenburns{ animation:kenburns 24s ease-in-out infinite alternate; }
+    .hero-shade{
+      background:linear-gradient(100deg,rgba(10,10,11,.92) 0%,rgba(10,10,11,.72) 34%,
+                                        rgba(10,10,11,.28) 62%,transparent 84%);
+    }
+    @media (max-width:900px){
+      .hero-shade{ background:linear-gradient(180deg,rgba(10,10,11,.55) 0%,rgba(10,10,11,.78) 46%,rgba(10,10,11,.92) 100%); }
+    }
+
+    /* ── Hero — 설치 전 ↔ 행사 당일 비교 ──
+       --x 가 가르는 위치(%)다. 두 사진을 겹쳐 놓고 위 사진만 잘라 보여준다.
+       clip-path 로 자르면 사진이 움직이지 않아 두 장면이 정확히 겹친다. */
+    .hc{ position:absolute;inset:0;overflow:hidden;cursor:ew-resize;touch-action:pan-y; }
+    .hc-img{
+      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+      opacity:.78;filter:saturate(1.15) contrast(1.06);
+      -webkit-user-drag:none;user-select:none;pointer-events:none;
+    }
+    .hc-before{ clip-path:inset(0 calc(100% - var(--x)) 0 0); }
+    .hc.easing .hc-before,
+    .hc.easing .hc-line,
+    .hc.easing .hc-grip{ transition:clip-path .9s cubic-bezier(.16,1,.3,1),left .9s cubic-bezier(.16,1,.3,1); }
+
+    .hc-line{
+      position:absolute;top:0;bottom:0;left:var(--x);width:2px;
+      background:linear-gradient(180deg,transparent,rgba(255,255,255,.85) 18%,rgba(255,255,255,.85) 82%,transparent);
+      transform:translateX(-1px);pointer-events:none;
+    }
+    .hc-grip{
+      position:absolute;left:var(--x);top:76.5%;transform:translate(-50%,-50%);
+      width:3.2rem;height:3.2rem;border-radius:9999px;
+      display:grid;place-items:center;color:#0a0a0a;
+      background:linear-gradient(100deg,#EF4444,#F59E0B);
+      border:2px solid rgba(255,255,255,.85);
+      box-shadow:0 6px 22px rgba(0,0,0,.45);
+      cursor:ew-resize;z-index:3;
+    }
+    .hc-grip:focus-visible{ outline:3px solid #fff;outline-offset:3px; }
+    .hc-arrow{ font-size:1.35rem;line-height:1;font-weight:900; }
+    /* 끌 수 있다는 걸 알려주는 잔물결 — 한 번 만져보면 멈춘다 */
+    .hc-grip::after{
+      content:'';position:absolute;inset:-.55rem;border-radius:9999px;
+      border:2px solid rgba(239,68,68,.55);
+      animation:hcpulse 2.4s ease-out infinite;
+    }
+    .hc.touched .hc-grip::after{ display:none; }
+    @keyframes hcpulse{ 0%{transform:scale(.85);opacity:.9} 70%,100%{transform:scale(1.5);opacity:0} }
+
+    .hc-tag{
+      position:absolute;top:6.5rem;z-index:2;
+      padding:.3rem .7rem;border-radius:9999px;
+      font-size:.7rem;font-weight:700;letter-spacing:.02em;
+      background:rgba(10,10,11,.55);backdrop-filter:blur(6px);
+      border:1px solid rgba(255,255,255,.14);color:#e4e4e7;pointer-events:none;
+    }
+    .hc-tag-l{ left:1.5rem; }
+    .hc-tag-r{ right:1.5rem; }
+
+    @media (max-width:640px){
+      .hc-grip{ top:69%;width:2.8rem;height:2.8rem; }
+      .hc-tag { top:5.4rem;font-size:.66rem; }
+      .hc-tag-l{ left:1.1rem; }
+      .hc-tag-r{ right:1.1rem; }
+    }
+    /* 움직임을 불편해하는 분에게는 잔물결을 끈다 */
+    @media (prefers-reduced-motion:reduce){
+      .hc-grip::after{ animation:none; }
+      .hc.easing .hc-before,.hc.easing .hc-line,.hc.easing .hc-grip{ transition:none; }
+    }
 
     @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
     .marquee-track{ display:flex;width:max-content;animation:marquee 32s linear infinite; }
@@ -336,18 +418,43 @@
      HERO
 ══════════════════════════════════════════════════ -->
 <section id="top" style="position:relative;min-height:100svh;display:flex;align-items:center;overflow:hidden;">
-  <div style="position:absolute;inset:0;overflow:hidden;">
-    <img src="photos/hero-nokdong-fireworks.jpg" alt="제24회 녹동바다불꽃축제 무대" class="kenburns"
-         style="width:100%;height:100%;object-fit:cover;opacity:.72;filter:saturate(1.18) contrast(1.08);">
+  <!-- 설치 전 ↔ 행사 당일. 손잡이를 끌면 갈라진다.
+       배경 아무 데나 끌어도 되고, 손잡이는 키보드 화살표로도 움직인다. -->
+  <div class="hc" id="hc" style="--x:50%;">
+    <img class="hc-img" src="photos/hero-after.jpg"
+         alt="행사 당일 밤 — 불이 켜진 무대와 가득 찬 관객석">
+    <img class="hc-img hc-before" src="photos/hero-before.jpg"
+         alt="행사 당일 아침 — 트러스 골조에 조명을 다는 현장">
+    <span class="hc-tag hc-tag-l">설치 전</span>
+    <span class="hc-tag hc-tag-r">행사 당일</span>
+    <div class="hc-line" aria-hidden="true"></div>
+    <button type="button" class="hc-grip" id="hc-grip"
+            role="slider" aria-label="설치 전과 행사 당일 비교"
+            aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+      <span class="hc-arrow" aria-hidden="true">↔</span>
+    </button>
   </div>
-  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,11,.82) 0%,rgba(10,10,11,.46) 45%,rgba(10,10,11,.88) 88%,#0a0a0b 100%);"></div>
-  <div style="position:absolute;top:-14rem;left:-10rem;width:34rem;height:34rem;border-radius:50%;background:radial-gradient(circle,rgba(239,68,68,.2),transparent 68%);filter:blur(40px);"></div>
-  <div style="position:absolute;bottom:-12rem;right:-8rem;width:30rem;height:30rem;border-radius:50%;background:radial-gradient(circle,rgba(245,158,11,.16),transparent 68%);filter:blur(40px);"></div>
+  <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(10,10,11,.80) 0%,rgba(10,10,11,.42) 40%,rgba(10,10,11,.88) 86%,#0a0a0b 100%);"></div>
+  <!-- 글자가 앉는 왼쪽을 한 겹 더 깔아둔다. 낮 사진(설치 전)이 밝아서
+       이게 없으면 본문이 배경에 먹힌다. -->
+  <div class="hero-shade" style="position:absolute;inset:0;pointer-events:none;"></div>
+  <div style="position:absolute;pointer-events:none;top:-14rem;left:-10rem;width:34rem;height:34rem;border-radius:50%;background:radial-gradient(circle,rgba(239,68,68,.2),transparent 68%);filter:blur(40px);"></div>
+  <div style="position:absolute;pointer-events:none;bottom:-12rem;right:-8rem;width:30rem;height:30rem;border-radius:50%;background:radial-gradient(circle,rgba(245,158,11,.16),transparent 68%);filter:blur(40px);"></div>
 
   <div style="position:relative;z-index:2;max-width:80rem;margin:0 auto;padding:8rem 1.5rem 5rem;width:100%;">
-    <div class="reveal glass" style="display:inline-flex;align-items:center;gap:.55rem;padding:.45rem 1rem;border-radius:9999px;font-size:.78rem;color:#e4e4e7;margin-bottom:1.75rem;">
-      <span style="width:.45rem;height:.45rem;border-radius:50%;background:#22C55E;box-shadow:0 0 8px #22C55E;"></span>
-      전남 고흥 · 목포 기반 · 전국 출장 가능
+    <div class="reveal" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.75rem;">
+      <span class="glass" style="display:inline-flex;align-items:center;gap:.55rem;padding:.45rem 1rem;border-radius:9999px;font-size:.78rem;color:#e4e4e7;">
+        <span style="width:.45rem;height:.45rem;border-radius:50%;background:#22C55E;box-shadow:0 0 8px #22C55E;"></span>
+        전남 고흥 · 목포 기반 · 전국 출장 가능
+      </span>
+
+      <!-- 갤러리에 사진을 올리면 이 칩이 저절로 최신 행사로 바뀐다.
+           목록을 못 읽으면 그냥 안 보인다 (hidden 그대로). -->
+      <button type="button" class="glass recent-chip" id="recent-chip" hidden>
+        <span class="recent-dot" aria-hidden="true"></span>
+        <span id="recent-text"></span>
+        <span aria-hidden="true" style="color:#F87171;font-weight:800;">›</span>
+      </button>
     </div>
 
     <h1 class="reveal" style="font-size:clamp(2.6rem,8vw,5.6rem);font-weight:900;letter-spacing:-.045em;line-height:1.02;margin-bottom:1.5rem;">
@@ -1387,6 +1494,77 @@ function 사진URL(p) {
 const 행사사진     = [];   // 행사별 사진 목록
 const 행사목록     = [];   // 행사별 정보 (이름 · 날짜 · 장소 · 설명)
 
+/* ══════════════════════════════════════════════════════════════
+   히어로 — 설치 전 ↔ 행사 당일 비교
+
+   배경 아무 데나 끌면 갈라진다. 손잡이는 키보드 화살표로도 움직인다.
+   처음 한 번 저절로 스윽 움직여서 "끌 수 있다"를 알려준다.
+══════════════════════════════════════════════════════════════ */
+(function 히어로비교() {
+  const 판 = document.getElementById('hc');
+  const 손잡이 = document.getElementById('hc-grip');
+  if (!판 || !손잡이) return;
+
+  let 끄는중 = false;
+
+  function 놓기(비율) {
+    const x = Math.min(97, Math.max(3, 비율));
+    판.style.setProperty('--x', x + '%');
+    손잡이.setAttribute('aria-valuenow', Math.round(x));
+  }
+
+  function 좌표로(clientX) {
+    const 칸 = 판.getBoundingClientRect();
+    놓기(((clientX - 칸.left) / 칸.width) * 100);
+  }
+
+  function 만졌다() {
+    판.classList.add('touched');     // 잔물결 끄기
+    판.classList.remove('easing');   // 손을 대면 자동 움직임은 즉시 그만
+  }
+
+  // 버튼·링크 위에서는 끌지 않는다 (전화 걸기가 막히면 안 된다)
+  판.parentElement.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('a, button:not(.hc-grip), input, label')) return;
+    끄는중 = true;
+    만졌다();
+    좌표로(e.clientX);
+    if (e.pointerId !== undefined && 판.setPointerCapture) {
+      try { 판.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+    }
+    e.preventDefault();
+  });
+  window.addEventListener('pointermove', (e) => { if (끄는중) 좌표로(e.clientX); });
+  window.addEventListener('pointerup',   () => { 끄는중 = false; });
+  window.addEventListener('pointercancel', () => { 끄는중 = false; });
+
+  // 키보드 — 화살표로 5%씩, Home/End 로 끝까지
+  손잡이.addEventListener('keydown', (e) => {
+    const 지금 = parseFloat(판.style.getPropertyValue('--x')) || 50;
+    let 다음 = null;
+    if (e.key === 'ArrowLeft')  다음 = 지금 - 5;
+    if (e.key === 'ArrowRight') 다음 = 지금 + 5;
+    if (e.key === 'Home')       다음 = 3;
+    if (e.key === 'End')        다음 = 97;
+    if (다음 === null) return;
+    만졌다(); 놓기(다음); e.preventDefault();
+  });
+
+  /* 첫인사 — 화면에 들어오고 잠깐 뒤에 한 번만 움직인다.
+     이걸 안 하면 그냥 배경 사진인 줄 알고 지나간다. */
+  const 인사 = () => {
+    if (판.classList.contains('touched')) return;
+    판.classList.add('easing');
+    놓기(66);
+    setTimeout(() => { if (!판.classList.contains('touched')) 놓기(38); }, 1000);
+    setTimeout(() => {
+      if (!판.classList.contains('touched')) 놓기(50);
+      setTimeout(() => 판.classList.remove('easing'), 1000);
+    }, 2000);
+  };
+  setTimeout(인사, 1400);
+})();
+
 (async function 갤러리불러오기() {
   let 목록 = [];
   try {
@@ -1416,6 +1594,18 @@ const 행사목록     = [];   // 행사별 정보 (이름 · 날짜 · 장소 �
 
   const 행사들 = [...묶음.values()];
   if (!행사들.length) return;
+
+  /* 히어로의 「최근 현장」 칩 — 목록 맨 앞이 가장 최근 행사다.
+     사진을 올릴 때마다 첫 화면이 저절로 최신이 된다. */
+  (function 최근칩(행사) {
+    const 칩 = document.getElementById('recent-chip');
+    const 글 = document.getElementById('recent-text');
+    if (!칩 || !글 || !행사.이름) return;
+    const 날 = (행사.날짜 || '').slice(5).replace('-', '.');   // 2026-08-19 → 08.19
+    글.textContent = '최근 현장 · ' + (날 ? 날 + ' ' : '') + 행사.이름;
+    칩.hidden = false;
+    칩.addEventListener('click', () => 행사보기(0));
+  })(행사들[0]);
 
   const 담을곳 = document.createDocumentFragment();
   행사들.forEach((행사, i) => {
