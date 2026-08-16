@@ -1356,7 +1356,20 @@ galToggle.addEventListener('click', () => {
 /* 사진은 photos 브랜치에 쌓는다.
    main 에 넣으면 사진 한 장마다 사이트 배포가 한 번씩 돌아 배포가 밀린다. */
 const 사진목록주소 = 'https://raw.githubusercontent.com/brizymedia/ym-total-event/photos/photos/photos.json';
-const 사진주소     = 'https://cdn.jsdelivr.net/gh/brizymedia/ym-total-event@photos/';
+const CDN뿌리      = 'https://cdn.jsdelivr.net/gh/brizymedia/ym-total-event';
+const 사진주소     = CDN뿌리 + '@photos/';
+
+/* 사진 한 장의 주소를 만든다.
+
+   sha(커밋 번호)가 있으면 그 시점을 콕 집어 부른다. 사진마다 주소가 달라지니
+   CDN 이 옛날 것을 물고 있을 수가 없고, 올리자마자 바로 보인다.
+   sha 가 없는 예전 사진은 브랜치 주소로 부른다(그건 이미 퍼져 있다). */
+function 사진URL(p) {
+  const 안전한경로 = p.path.split('/').map(encodeURIComponent).join('/');
+  return p.sha ? CDN뿌리 + '@' + p.sha + '/' + 안전한경로
+               : 사진주소 + 안전한경로;
+}
+
 const 행사사진     = [];   // 행사별 사진 목록
 const 행사목록     = [];   // 행사별 정보 (이름 · 날짜 · 장소 · 설명)
 
@@ -1394,7 +1407,7 @@ const 행사목록     = [];   // 행사별 정보 (이름 · 날짜 · 장소 �
   행사들.forEach((행사, i) => {
     행사목록[i] = 행사;
     행사사진[i] = 행사.사진.map((p) => ({
-      src: 사진주소 + p.path.split('/').map(encodeURIComponent).join('/'),
+      src: 사진URL(p),
       alt: 행사.이름,
       cap: 행사.이름 + (행사.장소 ? ' · ' + 행사.장소 : ''),
     }));

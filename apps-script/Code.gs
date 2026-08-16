@@ -94,7 +94,10 @@ function 사진저장(요청) {
   const 결과 = 깃허브에올리기(경로, 요청.web, '사진 추가: ' + (행사.name || '행사') + ' ' + 파일명);
   if (!결과.ok) return 결과;
 
-  return { ok: true, path: 경로 };
+  /* 커밋 번호를 같이 돌려준다.
+     갤러리가 .../gh/저장소@커밋번호/사진 형태로 부르면, 사진마다 주소가 달라서
+     CDN 이 옛날 것을 물고 있을 수가 없다. 올리자마자 바로 보인다. */
+  return { ok: true, path: 경로, sha: 결과.commit };
 }
 
 /* ── 사진 목록(photos.json) 갱신 ── */
@@ -241,7 +244,12 @@ function 깃허브에올리기(경로, base64, 메모) {
 
   const 응 = 깃허브(경로, 'put', 본문);
   const 코드 = 응.getResponseCode();
-  if (코드 === 200 || 코드 === 201) return { ok: true };
+  if (코드 === 200 || 코드 === 201) {
+    // 방금 만들어진 커밋 번호. 갤러리가 이 번호로 사진 주소를 만든다.
+    let 커밋 = '';
+    try { 커밋 = JSON.parse(응.getContentText()).commit.sha || ''; } catch (err) { /* 없으면 없는 대로 */ }
+    return { ok: true, commit: 커밋 };
+  }
 
   let 사유 = 응.getContentText();
   try { 사유 = JSON.parse(사유).message || 사유; } catch (err) { /* 그대로 */ }

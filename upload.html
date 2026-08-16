@@ -495,6 +495,7 @@ $('#go').addEventListener('click', async () => {
       남길것.push({
         path: 결과.path, event: 행사.name, date: 행사.date,
         place: 행사.place, caption: 행사.name, desc: 행사.desc,
+        sha: 결과.sha || '',   // 이 사진이 들어간 커밋. 갤러리가 주소를 만들 때 쓴다
       });
     } catch (err) {
       p.state = '실패'; 실패++;
@@ -567,7 +568,20 @@ async function 보내기(몸통) {
    목록은 저장소에서 바로 읽고, 고치거나 지우는 것만 서버에 맡깁니다.
 ══════════════════════════════════════════════════════════════ */
 const 목록주소 = 'https://raw.githubusercontent.com/brizymedia/ym-total-event/photos/photos/photos.json';
-const 사진주소 = 'https://cdn.jsdelivr.net/gh/brizymedia/ym-total-event@photos/';
+const CDN뿌리 = 'https://cdn.jsdelivr.net/gh/brizymedia/ym-total-event';
+const 사진주소 = CDN뿌리 + '@photos/';
+
+/* 사진 한 장의 주소를 만든다.
+
+   sha(커밋 번호)가 있으면 그 시점을 콕 집어 부른다. 사진마다 주소가 달라지니
+   CDN 이 옛날 것을 물고 있을 수가 없고, 올리자마자 바로 보인다.
+   sha 가 없는 예전 사진은 브랜치 주소로 부른다(그건 이미 퍼져 있다). */
+function 사진URL(p) {
+  const 안전한경로 = p.path.split('/').map(encodeURIComponent).join('/');
+  return p.sha ? CDN뿌리 + '@' + p.sha + '/' + 안전한경로
+               : 사진주소 + 안전한경로;
+}
+
 
 function 관리안내(글, 종류) {
   const el = $('#mg-status');
@@ -663,7 +677,7 @@ function 관리폼(몸, 행사, 줄) {
   행사.사진.forEach((p) => {
     const d = document.createElement('div');
     d.className = 'mg-shot';
-    d.innerHTML = '<img src="' + 사진주소 + p.path.split('/').map(encodeURIComponent).join('/') +
+    d.innerHTML = '<img src="' + 사진URL(p) +
                   '" alt="" loading="lazy"><button type="button" title="이 사진 지우기">×</button>';
     d.querySelector('button').addEventListener('click', () => {
       if (지울것.has(p.path)) { 지울것.delete(p.path); d.classList.remove('gone'); }
