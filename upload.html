@@ -188,19 +188,12 @@
       사진 오른쪽 위에 <strong style="color:#fff;">YM토탈이벤트</strong> 워터마크 넣기
     </label>
     <p class="note" style="margin-top:.35rem;">
-      홈페이지에 올라가는 사진에만 들어갑니다.
-      원본을 백업하실 때는 <strong style="color:#a1a1aa;">원본이 깨끗하게</strong> 남습니다.
+      휴대폰의 원본 사진은 건드리지 않습니다.
     </p>
 
-    <label class="chk" style="margin-top:1rem;">
-      <input type="checkbox" id="keep-orig">
-      원본도 구글 드라이브에 백업
-    </label>
-    <p class="note" style="margin-top:.35rem;">
-      <strong style="color:#a1a1aa;">기본은 꺼짐</strong>입니다 — 구글 드라이브에는 아무것도 남지 않고,
-      홈페이지에 쓰이는 축소본만 올라갑니다. 고객사에서 받은 사진을 올리실 때 그대로 두세요.
-      <br>
-      직접 찍으신 사진을 원본까지 보관하고 싶으실 때만 켜주세요. 데이터도 그만큼 더 씁니다.
+    <p class="note" style="margin-top:1rem;">
+      사진은 <strong style="color:#a1a1aa;">홈페이지에만</strong> 올라갑니다.
+      구글 드라이브에는 아무것도 저장되지 않으니, 고객사에서 받은 사진도 마음 놓고 올리셔도 됩니다.
     </p>
   </div>
 
@@ -445,14 +438,10 @@ function 정보갱신() {
   const 웹합 = 사진들.reduce((s, p) => s + p.web.size, 0);
   const 원합 = 사진들.reduce((s, p) => s + p.file.size, 0);
   el.hidden = false;
-  // 원본을 안 보낼 때는 실제로 올라가는 양만 보여준다 (그게 데이터를 쓰는 양이다)
-  el.textContent = $('#keep-orig').checked
-    ? 사진들.length + '장 · 웹용 ' + 메가(웹합) + ' + 원본 ' + 메가(원합)
-    : 사진들.length + '장 · ' + 메가(웹합) + ' 올라갑니다 (원본 ' + 메가(원합) + '은 안 보냄)';
+  // 실제로 올라가는 양을 보여준다 (그게 데이터를 쓰는 양이다)
+  el.textContent = 사진들.length + '장 · ' + 메가(웹합) + ' 올라갑니다' +
+                   ' (원본 ' + 메가(원합) + '에서 줄임)';
 }
-
-/* 백업을 켜고 끄면 실제로 올라가는 용량이 달라진다 — 바로 보여준다 */
-$('#keep-orig').addEventListener('change', 정보갱신);
 const 메가 = (n) => n < 1048576 ? Math.round(n / 1024) + 'KB'
                                 : (n / 1048576).toFixed(1) + 'MB';
 
@@ -473,7 +462,6 @@ $('#go').addEventListener('click', async () => {
 
   const 행사 = { name: 이름, date: $('#ev-date').value, place: $('#ev-place').value.trim(),
                  desc: $('#ev-desc').value.trim() };
-  const 원본포함 = $('#keep-orig').checked;
   const eventId = (행사.date || '').replace(/-/g, '') + '-' +
                   Math.random().toString(36).slice(2, 6);
 
@@ -482,7 +470,7 @@ $('#go').addEventListener('click', async () => {
   $('#bar').hidden = false;
   const 게이지 = $('#bar > i');
   const 남길것 = [];
-  let 성공 = 0, 실패 = 0, 경고 = '', 실패사유 = '';
+  let 성공 = 0, 실패 = 0, 실패사유 = '';
 
   const 대기목록 = 사진들.filter((p) => p.state !== '완료');
 
@@ -499,13 +487,11 @@ $('#go').addEventListener('click', async () => {
         web: await base64(p.web),
         origName: p.file.name,
       };
-      if (원본포함) 몸통.orig = await base64(p.file);
 
       const 결과 = await 보내기(몸통);
       if (!결과.ok) throw new Error(결과.error || '알 수 없는 오류');
 
       p.state = '완료'; 성공++;
-      if (결과.원본경고) 경고 = 결과.원본경고;
       남길것.push({
         path: 결과.path, event: 행사.name, date: 행사.date,
         place: 행사.place, caption: 행사.name, desc: 행사.desc,
@@ -541,7 +527,6 @@ $('#go').addEventListener('click', async () => {
   const 말 = [];
   if (성공) 말.push(성공 + '장 올렸습니다.');
   if (실패) 말.push(실패 + '장 실패 — ' + (실패사유 || '사유 알 수 없음'));
-  if (경고) 말.push('(' + 경고 + ')');
   if (성공 && !실패) 말.push('갤러리에서 바로 확인하실 수 있습니다.');
   $('#status').className = 'note ' + (실패 ? 'warn' : 'ok');
   $('#status').textContent = 말.join(' ');

@@ -1,11 +1,13 @@
 /**
  * YM토탈이벤트 · 행사 사진 업로드 서버
  * ────────────────────────────────────────────────────────────
- * 구글 앱스 스크립트로 도는 아주 작은 서버입니다. 하는 일은 셋:
+ * 구글 앱스 스크립트로 도는 아주 작은 서버입니다. 하는 일은 둘:
  *
- *   1. 원본 사진  →  구글 드라이브 (행사별 폴더를 자동으로 만듭니다)
- *   2. 웹용 축소본 →  홈페이지 저장소 (갤러리에서 빨리 뜨게)
- *   3. 사진 목록  →  photos.json 갱신 (갤러리가 이걸 읽습니다)
+ *   1. 웹용 축소본 →  홈페이지 저장소 (갤러리가 여기서 읽습니다)
+ *   2. 사진 목록  →  photos.json 갱신
+ *
+ * 사진은 구글 드라이브에 저장하지 않습니다. 그래서 드라이브 권한도
+ * 요구하지 않습니다.
  *
  * 설치 방법은 같은 폴더의 README.md 를 보세요.
  * 비밀번호·토큰은 이 파일에 적지 말고 「스크립트 속성」에 넣습니다.
@@ -14,8 +16,7 @@
 /* ══ 스크립트 속성에서 설정을 읽어온다 ══
    UPLOAD_PW      업로드 비밀번호 (본인만 아는 값)
    GITHUB_TOKEN   GitHub 토큰 (Contents 쓰기 권한)
-   GITHUB_REPO    brizymedia/ym-total-event
-   DRIVE_FOLDER   원본을 모아둘 구글 드라이브 폴더 ID          */
+   GITHUB_REPO    brizymedia/ym-total-event                  */
 function 설정(키) {
   const v = PropertiesService.getScriptProperties().getProperty(키);
   if (!v) throw new Error('스크립트 속성에 ' + 키 + ' 가 없습니다. README 3단계를 확인해 주세요.');
@@ -43,8 +44,6 @@ const 저장브랜치 = 'photos';
 function 권한받기() {
   // 바깥 인터넷에 연결하는 권한 (깃허브에 사진을 올릴 때 씁니다)
   UrlFetchApp.fetch('https://api.github.com/rate_limit', { muteHttpExceptions: true });
-  // 드라이브에 폴더와 파일을 만드는 권한 (원본 보관에 씁니다)
-  DriveApp.getRootFolder().getName();
   Logger.log('권한 확인 완료 — 이제 배포를 새 버전으로 다시 해주세요.');
 }
 
@@ -54,7 +53,7 @@ function 권한받기() {
 ══════════════════════════════════════════════════════════════ */
 function doGet() {
   const 준비 = {};
-  ['UPLOAD_PW', 'GITHUB_TOKEN', 'GITHUB_REPO', 'DRIVE_FOLDER'].forEach((k) => {
+  ['UPLOAD_PW', 'GITHUB_TOKEN', 'GITHUB_REPO'].forEach((k) => {
     준비[k] = !!PropertiesService.getScriptProperties().getProperty(k);
   });
   return 응답({ ok: true, 이름: 'YM 사진 업로드 서버', 설정완료: 준비 });
@@ -91,32 +90,11 @@ function 사진저장(요청) {
   const 파일명 = 번호 + '.jpg';
   const 경로 = 저장경로 + '/' + 요청.eventId + '/' + 파일명;
 
-  // (1) 웹용 축소본 → 홈페이지 저장소
+  // 웹용 축소본 → 홈페이지 저장소
   const 결과 = 깃허브에올리기(경로, 요청.web, '사진 추가: ' + (행사.name || '행사') + ' ' + 파일명);
   if (!결과.ok) return 결과;
 
-  // (2) 원본 → 구글 드라이브 (보내온 경우에만)
-  let 드라이브 = '';
-  if (요청.orig) {
-    try {
-      const 폴더 = 행사폴더(행사);
-      const blob = Utilities.newBlob(Utilities.base64Decode(요청.orig), 'image/jpeg',
-                                     (요청.origName || 파일명));
-      드라이브 = 폴더.createFile(blob).getId();
-    } catch (err) {
-      // 원본 백업이 실패해도 사진 자체는 이미 올라갔다. 사실대로 알려준다.
-      return { ok: true, path: 경로, 원본경고: '원본 백업 실패: ' + err.message };
-    }
-  }
-  return { ok: true, path: 경로, drive: 드라이브 };
-}
-
-/* ── 행사별 드라이브 폴더 (없으면 만든다) ── */
-function 행사폴더(행사) {
-  const 뿌리 = DriveApp.getFolderById(설정('DRIVE_FOLDER'));
-  const 이름 = (행사.date || '날짜미정') + ' ' + (행사.name || '행사');
-  const 있는것 = 뿌리.getFoldersByName(이름);
-  return 있는것.hasNext() ? 있는것.next() : 뿌리.createFolder(이름);
+  return { ok: true, path: 경로 };
 }
 
 /* ── 사진 목록(photos.json) 갱신 ── */
