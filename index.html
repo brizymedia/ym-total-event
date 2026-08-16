@@ -1364,6 +1364,20 @@ const 사진주소     = CDN뿌리 + '@photos/';
    sha(커밋 번호)가 있으면 그 시점을 콕 집어 부른다. 사진마다 주소가 달라지니
    CDN 이 옛날 것을 물고 있을 수가 없고, 올리자마자 바로 보인다.
    sha 가 없는 예전 사진은 브랜치 주소로 부른다(그건 이미 퍼져 있다). */
+/* CDN 이 아직 사진을 못 주면, 깃허브에서 바로 가져온다.
+   jsDelivr 는 빠르지만 새 파일을 늦게 집는 일이 있다.
+   그럴 때 사진이 깨진 채로 남지 않도록 한 번만 다른 길로 다시 부른다.
+   (img 의 error 는 위로 전달되지 않아서 capture 로 받는다) */
+document.addEventListener('error', function (e) {
+  const el = e.target;
+  if (!el || el.tagName !== 'IMG' || el.dataset.다시부름) return;
+  if (el.src.indexOf('cdn.jsdelivr.net') === -1) return;
+  el.dataset.다시부름 = '1';
+  el.src = el.src.replace(
+    /^https:\/\/cdn\.jsdelivr\.net\/gh\/([^@/]+)\/([^@/]+)@([^/]+)\//,
+    'https://raw.githubusercontent.com/$1/$2/$3/');
+}, true);
+
 function 사진URL(p) {
   const 안전한경로 = p.path.split('/').map(encodeURIComponent).join('/');
   return p.sha ? CDN뿌리 + '@' + p.sha + '/' + 안전한경로
